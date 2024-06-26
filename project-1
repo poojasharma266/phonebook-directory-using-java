@@ -1,0 +1,222 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class PhoneBookApp extends JFrame {
+
+    static class PhoneBookEntry {
+        String name;
+        String phoneNumber;
+        PhoneBookEntry prev;
+        PhoneBookEntry next;
+
+        public PhoneBookEntry(String name, String phoneNumber) {
+            this.name = name;
+            this.phoneNumber = phoneNumber;
+            this.prev = null;
+            this.next = null;
+        }
+    }
+
+    static class PhoneBook {
+        private PhoneBookEntry head;
+        private PhoneBookEntry tail;
+
+        public PhoneBook() {
+            head = null;
+            tail = null;
+        }
+
+        public void addEntry(String name, String phoneNumber) {
+            PhoneBookEntry newEntry = new PhoneBookEntry(name, phoneNumber);
+            if (head == null) {
+                head = newEntry;
+                tail = newEntry;
+            } else {
+                tail.next = newEntry;
+                newEntry.prev = tail;
+                tail = newEntry;
+            }
+        }
+
+        public boolean removeEntry(String name) {
+            PhoneBookEntry current = head;
+            while (current != null) {
+                if (current.name.equals(name)) {
+                    if (current.prev != null) {
+                        current.prev.next = current.next;
+                    } else {
+                        head = current.next;
+                    }
+                    if (current.next != null) {
+                        current.next.prev = current.prev;
+                    } else {
+                        tail = current.prev;
+                    }
+                    return true;
+                }
+                current = current.next;
+            }
+            return false;
+        }
+
+        public PhoneBookEntry searchEntry(String name) {
+            PhoneBookEntry current = head;
+            while (current != null) {
+                if (current.name.equals(name)) {
+                    return current;
+                }
+                current = current.next;
+            }
+            return null;
+        }
+
+        public String displayEntries() {
+            StringBuilder entries = new StringBuilder();
+            PhoneBookEntry current = head;
+            while (current != null) {
+                entries.append("Name: ").append(current.name)
+                       .append(", Phone Number: ").append(current.phoneNumber).append("\n");
+                current = current.next;
+            }
+            return entries.toString();
+        }
+    }
+
+    private PhoneBook phoneBook = new PhoneBook();
+    private JTextArea displayArea;
+    private JTextField nameField, phoneField;
+
+    public PhoneBookApp() {
+        setTitle("Phone Book Directory");
+        setSize(600, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
+
+        displayArea = new JTextArea();
+        displayArea.setEditable(false);
+        add(new JScrollPane(displayArea), BorderLayout.CENTER);
+
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.EAST;
+        inputPanel.add(new JLabel("Name:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        nameField = new JTextField(20);
+        inputPanel.add(nameField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.EAST;
+        inputPanel.add(new JLabel("Phone Number:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        phoneField = new JTextField(20);
+        inputPanel.add(phoneField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+
+        JButton addButton = new JButton("Add Entry");
+        addButton.addActionListener(new AddEntryListener());
+        buttonPanel.add(addButton);
+
+        JButton removeButton = new JButton("Remove Entry");
+        removeButton.addActionListener(new RemoveEntryListener());
+        buttonPanel.add(removeButton);
+
+        JButton searchButton = new JButton("Search Entry");
+        searchButton.addActionListener(new SearchEntryListener());
+        buttonPanel.add(searchButton);
+
+        JButton displayButton = new JButton("Display All Entries");
+        displayButton.addActionListener(new DisplayEntriesListener());
+        buttonPanel.add(displayButton);
+
+        inputPanel.add(buttonPanel, gbc);
+
+        add(inputPanel, BorderLayout.NORTH);
+    }
+
+    private class AddEntryListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String name = nameField.getText().trim();
+            String phoneNumber = phoneField.getText().trim();
+            if (name.isEmpty() || phoneNumber.isEmpty()) {
+                JOptionPane.showMessageDialog(PhoneBookApp.this, "Both name and phone number must be provided.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            phoneBook.addEntry(name, phoneNumber);
+            displayArea.setText("Entry added:\nName: " + name + ", Phone Number: " + phoneNumber);
+            nameField.setText("");
+            phoneField.setText("");
+        }
+    }
+
+    private class RemoveEntryListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(PhoneBookApp.this, "Name must be provided.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            boolean removed = phoneBook.removeEntry(name);
+            if (removed) {
+                displayArea.setText("Entry removed:\nName: " + name);
+            } else {
+                displayArea.setText("Entry not found:\nName: " + name);
+            }
+            nameField.setText("");
+        }
+    }
+
+    private class SearchEntryListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(PhoneBookApp.this, "Name must be provided.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            PhoneBookEntry entry = phoneBook.searchEntry(name);
+            if (entry != null) {
+                displayArea.setText("Found entry:\nName: " + entry.name + ", Phone Number: " + entry.phoneNumber);
+            } else {
+                displayArea.setText("Entry not found:\nName: " + name);
+            }
+            nameField.setText("");
+        }
+    }
+
+    private class DisplayEntriesListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String entries = phoneBook.displayEntries();
+            if (!entries.isEmpty()) {
+                displayArea.setText("All Entries:\n" + entries);
+            } else {
+                displayArea.setText("No entries found.");
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new PhoneBookApp().setVisible(true);
+            }
+        });
+    }
+}
